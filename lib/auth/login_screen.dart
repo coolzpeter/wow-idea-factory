@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../services/supabase_service.dart'; // Import the new service
+import '../catalog/catalog_screen.dart'; // Import the CatalogScreen for navigation
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -11,20 +12,23 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _authService = SupabaseService(); // Initialize the service
 
   Future<void> _signIn() async {
     try {
-      // Supabase Auth call
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: '${_usernameController.text}@wowfactory.com', // Fake email format for usernames
-        password: _passwordController.text,
+      await _authService.signIn(
+        _usernameController.text,
+        _passwordController.text,
       );
-      // Navigate to Catalog on success
-    } catch (e) {
-      // Guard the context usage
+      // If no error is thrown, navigation will happen here
       if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => const CatalogScreen()),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
