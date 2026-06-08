@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../auth/login_screen.dart';
 import '../services/supabase_service.dart';
+import 'product_details_screen.dart';
 
 class CatalogScreen extends StatelessWidget {
   const CatalogScreen({super.key});
@@ -56,8 +57,13 @@ class CatalogScreen extends StatelessWidget {
                 subtitle: Text('Code: ${product['product_code']} | Type: ${product['product_type']}'),
                 trailing: const Icon(Icons.arrow_forward_ios, size: 16),
                 onTap: () {
-                  // Replaced print() with debugPrint() for production safety
-                  debugPrint("Clicked on ${product['product_name']}");
+                  // Navigate to the Product Details screen and pass the product data
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ProductDetailsScreen(product: product),
+                    ),
+                  );
                 },
               );
             },
