@@ -1,33 +1,83 @@
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
 
-class ProductDetailsScreen extends StatelessWidget {
-  // We pass the product map into this screen so it knows what to display
+class ProductDetailsScreen extends StatefulWidget {
   final Map<String, dynamic> product;
 
   const ProductDetailsScreen({super.key, required this.product});
 
   @override
+  State<ProductDetailsScreen> createState() => _ProductDetailsScreenState();
+}
+
+class _ProductDetailsScreenState extends State<ProductDetailsScreen> {
+  final dbService = SupabaseService();
+
+  // This tracks if the user has manually clicked the zoom buttons
+  int? _userSelectedColumnCount;
+
+  @override
   Widget build(BuildContext context) {
-    final dbService = SupabaseService();
-    // We safely extract the ID and Name, providing fallbacks just in case
-    final String productId = product['id']?.toString() ?? '';
-    final String productName = product['product_name'] ?? 'Product Details';
+    final String productId = widget.product['id']?.toString() ?? '';
+    final String productName =
+        widget.product['product_name'] ?? 'Product Details';
+
+    // 1. RESPONSIVE DESIGN: Calculate default columns dynamically
+    final screenWidth = MediaQuery.of(context).size.width;
+    // If screen is wider than 800px, default to 4. Otherwise, default to 2.
+    final defaultColumns = screenWidth > 800 ? 4 : 2;
+
+    // The actual columns we will show on screen
+    final currentColumns = _userSelectedColumnCount ?? defaultColumns;
 
     return Scaffold(
       appBar: AppBar(title: Text(productName)),
       body: Column(
         children: [
-          // Product Info Header
           Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Text(
-              'Available Designs',
-              style: Theme.of(context).textTheme.headlineSmall,
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Available Designs',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+                Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.zoom_out),
+                      tooltip: 'Show smaller items',
+                      // Zooming OUT means MORE columns. Cap it at 6.
+                      onPressed: currentColumns < 6
+                          ? () => setState(
+                              () =>
+                                  _userSelectedColumnCount = currentColumns + 1,
+                            )
+                          : null,
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.zoom_in),
+                      tooltip: 'Show larger items',
+                      // Zooming IN means FEWER columns. Cap it at 1.
+                      onPressed: currentColumns > 1
+                          ? () => setState(
+                              () =>
+                                  _userSelectedColumnCount = currentColumns - 1,
+                            )
+                          : null,
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
 
-          // Designs Grid
           Expanded(
             child: FutureBuilder<List<Map<String, dynamic>>>(
               future: dbService.fetchDesignsForProduct(productId),
@@ -47,11 +97,11 @@ class ProductDetailsScreen extends StatelessWidget {
                   );
                 }
 
-                // Displaying designs in a Grid
                 return GridView.builder(
                   padding: const EdgeInsets.all(16.0),
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 2, // 2 items per row
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount:
+                        currentColumns, // Uses our responsive variable
                     crossAxisSpacing: 10,
                     mainAxisSpacing: 10,
                   ),
@@ -65,33 +115,62 @@ class ProductDetailsScreen extends StatelessWidget {
                           builder: (context) => QuantitySelectionDialog(
                             productId: productId,
                             designId: design['id'].toString(),
-                            designName: design['design_name'] ?? 'Design',
+                            designName: design['design_code'] ?? 'Design',
                           ),
                         );
                       },
                       child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.grey.shade200,
+                            width: 1,
+                          ),
+                        ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
                             Expanded(
-                              child: Image.network(
-                                design['image_url'] ??
-                                    'https://via.placeholder.com/150',
-                                fit: BoxFit.cover,
-                                errorBuilder: (context, error, stackTrace) =>
-                                    const Icon(
-                                      Icons.image_not_supported,
-                                      size: 50,
+                              child: Container(
+                                color: Colors.grey.shade50,
+                                // 2. PREVENT DOWNLOADS: The Stack and Transparent Shield
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    // Layer 1: The actual image
+                                    Image.network(
+                                      design['image_url'] ??
+                                          'https://via.placeholder.com/150',
+                                      fit: BoxFit.cover,
+                                      errorBuilder:
+                                          (context, error, stackTrace) =>
+                                              const Icon(
+                                                Icons.image_not_supported,
+                                                size: 40,
+                                                color: Colors.grey,
+                                              ),
                                     ),
+                                    // Layer 2: The invisible shield that intercepts right-clicks
+                                    Container(color: Colors.transparent),
+                                  ],
+                                ),
                               ),
                             ),
-                            Padding(
-                              padding: const EdgeInsets.all(8.0),
+                            Container(
+                              color: Colors.white,
+                              padding: const EdgeInsets.symmetric(
+                                vertical: 12.0,
+                                horizontal: 8.0,
+                              ),
                               child: Text(
                                 design['design_code'] ?? 'Unknown Code',
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(
                                   fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                  letterSpacing: 1.2,
                                 ),
                               ),
                             ),

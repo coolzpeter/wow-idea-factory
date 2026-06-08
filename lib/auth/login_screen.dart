@@ -28,22 +28,59 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            TextField(controller: _usernameController, decoration: const InputDecoration(labelText: 'Username')),
-            TextField(controller: _passwordController, decoration: const InputDecoration(labelText: 'Password'), obscureText: true),
-            ElevatedButton(onPressed: _signIn, child: const Text('Login')),
-          ],
+      // Replace your existing Center widget with this:
+      body: Center(
+        // ConstrainedBox limits the width on desktop screens
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 400),
+          child: Padding(
+            padding: const EdgeInsets.all(24.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment
+                  .stretch, // Makes buttons/fields stretch to fill the 400px
+              children: [
+                Image.asset('assets/images/logo.png', height: 120),
+                const SizedBox(height: 40),
+
+                TextField(
+                  controller: _usernameController,
+                  textInputAction: TextInputAction
+                      .next, // Pressing "Tab" or "Enter" moves to the next field
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    border:
+                        OutlineInputBorder(), // Adds a clean box around the input
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                TextField(
+                  controller: _passwordController,
+                  obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (value) =>
+                      _signIn(), // THIS triggers login when you press Enter!
+                  decoration: const InputDecoration(
+                    labelText: 'Password',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 24),
+
+                ElevatedButton(onPressed: _signIn, child: const Text('Login')),
+              ],
+            ),
+          ),
         ),
       ),
     );
